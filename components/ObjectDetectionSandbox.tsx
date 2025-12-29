@@ -25,21 +25,21 @@ const ObjectDetectionSandbox: React.FC = () => {
     setResult('');
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+      // Create fresh instance right before call using process.env.API_KEY directly
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const base64Data = image.split(',')[1];
       
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: [
-          {
-            parts: [
-              { text: `You are a high-performance computer vision assistant. ${prompt}. Provide bounding box coordinates if possible in [ymin, xmin, ymax, xmax] format (0-1000 scale) and identify what makes the objects unique.` },
-              { inlineData: { mimeType: 'image/jpeg', data: base64Data } }
-            ]
-          }
-        ],
+        contents: {
+          parts: [
+            { text: `You are a high-performance computer vision assistant. ${prompt}. Provide bounding box coordinates if possible in [ymin, xmin, ymax, xmax] format (0-1000 scale) and identify what makes the objects unique.` },
+            { inlineData: { mimeType: 'image/jpeg', data: base64Data } }
+          ]
+        },
       });
 
+      // Directly access .text property from response
       setResult(response.text || 'No response from model.');
     } catch (err) {
       console.error(err);

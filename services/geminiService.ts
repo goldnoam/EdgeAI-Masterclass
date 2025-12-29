@@ -1,7 +1,8 @@
 
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+// Initialize GoogleGenAI with API key directly from environment as per @google/genai guidelines
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const getAIAssistance = async (prompt: string, framework: string) => {
   try {

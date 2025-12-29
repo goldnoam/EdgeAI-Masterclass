@@ -31,11 +31,6 @@ export interface FrameworkData {
   };
 }
 
-export interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
 export interface ComparisonFeature {
   name: string;
   pytorch: string | number;
@@ -70,4 +65,10 @@ export interface WizardStep {
     description: string;
     icon: string;
   }[];
+}
+
+// Added missing ChatMessage interface to resolve compilation error in GeminiExpert.tsx
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
 }
