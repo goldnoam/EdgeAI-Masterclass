@@ -141,11 +141,17 @@ export const FRAMEWORKS: FrameworkData[] = [
             label: 'v2.x (Latest)',
             python: `import torch\nimport torchvision\n\nmodel = torchvision.models.resnet18(weights="DEFAULT")\nmodel.eval()\nexample = torch.rand(1, 3, 224, 224)\ntraced_script_module = torch.jit.trace(model, example)\n\n# Save for C++\ntraced_script_module.save("model.pt")`,
             cpp: `#include <torch/script.h>\n#include <iostream>\n\nint main() {\n  torch::jit::script::Module module;\n  try {\n    module = torch::jit::load("model.pt");\n  } catch (const c10::Error& e) {\n    std::cerr << "error loading model\\n";\n    return -1;\n  }\n  auto input = torch::ones({1, 3, 224, 224});\n  at::Tensor output = module.forward({input}).toTensor();\n  std::cout << output.slice(1, 0, 5) << std::endl;\n}`
-          },
+          }
+        ]
+      },
+      {
+        title: 'TorchScript C++ Inference',
+        description: 'Full C++ inference loop including data preparation and result extraction.',
+        versions: [
           {
-            label: 'v1.13 (Stable)',
-            python: `import torch\nimport torchvision\n\nmodel = torchvision.models.resnet18(pretrained=True)\nmodel.eval()\n# ... standard trace`,
-            cpp: `// v1.13 loader\n#include <torch/script.h>\n// Same loading logic but uses older pretrained naming conventions`
+            label: 'Standard',
+            python: `# Prepare your scripted model\nimport torch\nmodel = torch.jit.script(MyModel())\nmodel.save("scripted_model.pt")`,
+            cpp: `#include <torch/script.h>\n#include <vector>\n\nvoid run_inference() {\n    // Load model\n    torch::jit::script::Module module = torch::jit::load("scripted_model.pt");\n    module.to(at::kCUDA);\n\n    // Create input tensor\n    auto input = torch::randn({1, 3, 224, 224}, at::kCUDA);\n\n    // Execute graph\n    std::vector<torch::jit::IValue> inputs;\n    inputs.push_back(input);\n    at::Tensor output = module.forward(inputs).toTensor();\n\n    // Post-process\n    auto max_result = output.max(1, true);\n    auto max_index = std::get<1>(max_result);\n    std::cout << "Predicted class: " << max_index.item<int>() << std::endl;\n}`
           }
         ]
       }
@@ -169,6 +175,17 @@ export const FRAMEWORKS: FrameworkData[] = [
       code: "from onnxruntime.training import ORTTrainer\n# Convert PyTorch model to ORT backend\nmodel = ORTModule(pytorch_model)"
     },
     examples: [
+      {
+        title: 'Execution Provider Configuration',
+        description: 'Optimizing inference by attaching specialized hardware accelerators in C++.',
+        versions: [
+          {
+            label: 'v1.17+',
+            python: `# Python equivalent\nimport onnxruntime as ort\nproviders = ['CUDAExecutionProvider', 'CPUExecutionProvider']\nsession = ort.InferenceSession("model.onnx", providers=providers)`,
+            cpp: `#include <onnxruntime_cxx_api.h>\n\nint main() {\n    Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "ORT_Optimization");\n    Ort::SessionOptions session_options;\n\n    // Attempt to use CUDA Execution Provider\n    try {\n        OrtCUDAProviderOptions cuda_options;\n        cuda_options.device_id = 0;\n        cuda_options.arena_extend_strategy = 0;\n        session_options.AppendExecutionProvider_CUDA(cuda_options);\n        std::cout << "CUDA EP attached successfully." << std::endl;\n    } catch (...) {\n        std::cout << "CUDA EP not available, falling back to CPU." << std::endl;\n    }\n\n    // Or attempt TensorRT for maximum speed\n    // OrtTensorRTProviderOptions trt_options;\n    // session_options.AppendExecutionProvider_TensorRT(trt_options);\n\n    Ort::Session session(env, L"model.onnx", session_options);\n    return 0;\n}`
+          }
+        ]
+      },
       {
         title: 'Inference Session Setup',
         description: 'Comprehensive C++ example for loading a model, preparing input, and processing results.',
@@ -225,8 +242,8 @@ export const FRAMEWORKS: FrameworkData[] = [
       "Profile your engine using the 'trtexec' CLI tool."
     ],
     trainingGuide: {
-      description: "Inference-only; perform QAT in PyTorch/TF before export.",
-      code: "from pytorch_quantization import nn as qnn"
+      description: "TensorRT is an inference optimizer. To achieve high-precision INT8 performance, Quantization-Aware Training (QAT) is recommended. By simulating quantization errors during training via libraries like 'pytorch-quantization', the model learns weights that are robust to low-precision representation.",
+      code: "import torch\nfrom pytorch_quantization import nn as qnn\nfrom pytorch_quantization import calib\n\n# 1. Initialize quantization environment\nqnn.TensorQuantizer.use_fb_fake_quant = True\n\n# 2. Replace standard modules with quantized versions\n# Example: model.conv1 = qnn.QuantConv2d(3, 64, kernel_size=7)\n\n# 3. Fine-tune for a few epochs (QAT)\n# 4. Export to ONNX with quantization nodes (DQ/Q)\n# 5. Build TensorRT engine from the quantized ONNX"
     },
     examples: [
       {
@@ -261,18 +278,24 @@ export const FRAMEWORKS: FrameworkData[] = [
     },
     examples: [
       {
-        title: 'Real-time Object Detection',
-        description: 'High performance detection boilerplate for various YOLO generations.',
+        title: 'YOLOv11 Inference',
+        description: 'Newest SOTA object detection implementation.',
         versions: [
           {
-            label: 'YOLOv11 (New)',
+            label: 'Latest',
             python: `from ultralytics import YOLO\nmodel = YOLO("yolo11n.pt")\nresults = model.predict("image.jpg", imgsz=640, half=True)`,
             cpp: `// Deployment via exported engine\n// 1. model.export(format='engine')\n// 2. Load with TensorRT C++ API`
-          },
+          }
+        ]
+      },
+      {
+        title: 'YOLOv8 Implementation',
+        description: 'The industry standard for real-time vision. YOLOv8 offers a balance of speed and accuracy with extensive deployment support.',
+        versions: [
           {
-            label: 'YOLOv8 (Legacy)',
-            python: `from ultralytics import YOLO\nmodel = YOLO("yolov8n.pt")\n# Same API structure as v11`,
-            cpp: `// Standard YOLOv8 ONNX Loader`
+            label: 'Legacy Stable',
+            python: `from ultralytics import YOLO\n\n# Load a pretrained model\nmodel = YOLO("yolov8n.pt")\n\n# Perform inference\nresults = model.predict("input.jpg", save=True, imgsz=640, conf=0.5)\n\n# Process results\nfor r in results:\n    print(r.boxes) # Print bounding boxes`,
+            cpp: `#include <onnxruntime_cxx_api.h>\n#include <vector>\n\n// Simplified YOLOv8 ONNX Inference logic\nvoid yolov8_inference() {\n    Ort::Env env;\n    Ort::Session session(env, L"yolov8n.onnx", Ort::SessionOptions{});\n\n    // Input shape: [1, 3, 640, 640]\n    // Output shape: [1, 84, 8400] (for 80 classes)\n    \n    std::vector<float> input_tensor_values(1 * 3 * 640 * 640);\n    // ... (Fill with pre-processed image pixels) ...\n\n    const char* input_names[] = {"images"};\n    const char* output_names[] = {"output0"};\n    \n    // Run inference\n    auto output_tensors = session.Run(Ort::RunOptions{nullptr}, input_names, &input_val, 1, output_names, 1);\n    \n    // Post-process: Parse [1, 84, 8400] tensor\n    // Row 0-3: [cx, cy, w, h]\n    // Row 4-83: Class probabilities\n    // Filter by confidence and apply NMS\n}`
           }
         ]
       }
@@ -358,13 +381,25 @@ export const FRAMEWORKS: FrameworkData[] = [
     examples: [
       {
         title: 'Native ONNX Execution',
-        description: 'Using Go to host highly concurrent inference servers.',
+        description: 'Basic usage of ONNX Runtime in Go using CGO bindings for model inference.',
         versions: [
           {
             label: 'v1.18+',
-            python: `# Prepare model\nmodel.export(format='onnx')`,
-            cpp: `// Standard C++ ONNX logic`,
-            go: `import "github.com/yalue/onnxruntime_go"\n// ... init & run`
+            python: `# Prepare model\nimport torch\ntorch.onnx.export(model, dummy_input, "model.onnx")`,
+            cpp: `#include <onnxruntime_cxx_api.h>\n// Standard C++ ONNX logic`,
+            go: `package main\n\nimport (\n    "fmt"\n    ort "github.com/yalue/onnxruntime_go"\n)\n\nfunc main() {\n    // 1. Set path to shared library (.so, .dll, or .dylib)\n    ort.SetSharedLibraryPath("libonnxruntime.so")\n    ort.Initialize()\n    defer ort.Destroy()\n\n    // 2. Prepare Input Tensor\n    inputShape := ort.NewShape(1, 3, 224, 224)\n    inputData := make([]float32, 1*3*224*224)\n    inputTensor, _ := ort.NewTensor(inputShape, inputData)\n    defer inputTensor.Destroy()\n\n    // 3. Setup Session\n    session, _ := ort.NewAdvancedSession("model.onnx",\n        []string{"input"}, []string{"output"},\n        []ort.ArbitraryTensor{inputTensor}, nil, nil)\n    defer session.Destroy()\n\n    // 4. Execute\n    err := session.Run()\n    if err == nil {\n        fmt.Println("Inference completed successfully")\n    }\n}`
+          }
+        ]
+      },
+      {
+        title: 'Concurrent Inference Server',
+        description: 'Leveraging Go routines and thread-safe ONNX sessions to build a high-throughput inference API.',
+        versions: [
+          {
+            label: 'Production-Ready',
+            python: `# Python equivalent often requires multiprocessing due to GIL`,
+            cpp: `#include <thread>\n// C++ requires custom thread pooling`,
+            go: `package main\n\nimport (\n    "encoding/json"\n    "net/http"\n    ort "github.com/yalue/onnxruntime_go"\n)\n\ntype Predictor struct {\n    session *ort.AdvancedSession\n}\n\n// ServeHTTP is called concurrently by Go's standard library\nfunc (p *Predictor) ServeHTTP(w http.ResponseWriter, r *http.Request) {\n    // 1. Concurrent Pre-processing (e.g., resizing, normalization)\n    // ... custom logic ...\n\n    // 2. Run Inference (ONNX sessions are thread-safe for Run())\n    err := p.session.Run()\n    if err != nil {\n        http.Error(w, "Inference error", 500)\n        return\n    }\n\n    // 3. Post-process and return JSON\n    json.NewEncoder(w).Encode(map[string]string{"status": "ok"})\n}\n\nfunc main() {\n    ort.Initialize()\n    // Initialize shared session here...\n    predictor := &Predictor{ /* initialized session */ }\n    http.ListenAndServe(":8080", predictor)\n}`
           }
         ]
       }
