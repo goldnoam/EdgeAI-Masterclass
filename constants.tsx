@@ -10,7 +10,8 @@ export const COMPARISON_FEATURES: ComparisonFeature[] = [
     ultralytics: "Vision Ease-of-use",
     roboflow: "Data Pipeline",
     sam3: "Zero-shot Seg",
-    golang: "Cloud Concurrency"
+    golang: "Cloud Concurrency",
+    kubernetes: "Orchestration & Scale"
   },
   {
     name: "C++ API Quality",
@@ -21,7 +22,8 @@ export const COMPARISON_FEATURES: ComparisonFeature[] = [
     ultralytics: "Via ONNX/TRT",
     roboflow: "REST",
     sam3: "Via ONNX",
-    golang: "via CGO"
+    golang: "via CGO",
+    kubernetes: "N/A"
   },
   {
     name: "Learning Curve",
@@ -32,7 +34,8 @@ export const COMPARISON_FEATURES: ComparisonFeature[] = [
     ultralytics: "Very Low",
     roboflow: "Very Low",
     sam3: "Low",
-    golang: "Medium"
+    golang: "Medium",
+    kubernetes: "High"
   }
 ];
 
@@ -47,46 +50,37 @@ export const BENCHMARK_METRICS: BenchmarkData[] = [
     ultralytics: 12,
     roboflow: 150,
     sam3: 28,
-    golang: 22
+    golang: 22,
+    kubernetes: 25 // Includes network overhead
   }
 ];
 
 export const TRAINING_BENCHMARKS: BenchmarkData[] = [
   {
-    metric: "Training Speed (ImageNet)",
-    unit: "epochs/sec",
-    pytorch: 0.045,
-    onnx: 0.032,
-    tensorflow: 0.041,
+    metric: "Orchestration Overhead",
+    unit: "% CPU",
+    pytorch: 2,
+    onnx: 1,
+    tensorflow: 3,
     tensorrt: 0,
-    ultralytics: 0.058,
-    roboflow: 0.012,
-    sam3: 0.015,
-    golang: 0.008
+    ultralytics: 1,
+    roboflow: 5,
+    sam3: 2,
+    golang: 1,
+    kubernetes: 12
   },
   {
-    metric: "Training Throughput",
-    unit: "img/sec",
-    pytorch: 425,
-    onnx: 390,
-    tensorflow: 410,
+    metric: "Scaling Latency",
+    unit: "sec",
+    pytorch: 0,
+    onnx: 0,
+    tensorflow: 0,
     tensorrt: 0,
-    ultralytics: 480,
-    roboflow: 110,
-    sam3: 140,
-    golang: 95
-  },
-  {
-    metric: "VRAM Efficiency",
-    unit: "GB",
-    pytorch: 6.2,
-    onnx: 7.4,
-    tensorflow: 8.1,
-    tensorrt: 0,
-    ultralytics: 4.2,
-    roboflow: 9.5,
-    sam3: 11.2,
-    golang: 8.5
+    ultralytics: 0,
+    roboflow: 0,
+    sam3: 0,
+    golang: 0,
+    kubernetes: 45 // Time to spawn new GPU pod
   }
 ];
 
@@ -98,7 +92,8 @@ export const WIZARD_STEPS: WizardStep[] = [
       { id: 'nvidia', label: 'NVIDIA GPU', description: 'Maximum performance via CUDA/TensorRT', icon: '⚡' },
       { id: 'mobile', label: 'Mobile/Edge', description: 'Deployment on Android, iOS, or ARM', icon: '📱' },
       { id: 'cpu', label: 'Intel/AMD CPU', description: 'Standard server or desktop inference', icon: '💻' },
-      { id: 'web', label: 'Web Browser', description: 'Running models directly in the browser', icon: '🌐' }
+      { id: 'web', label: 'Web Browser', description: 'Running models directly in the browser', icon: '🌐' },
+      { id: 'cluster', label: 'GPU Cluster', description: 'Scaling across multiple server nodes', icon: '☸️' }
     ]
   },
   {
@@ -107,7 +102,7 @@ export const WIZARD_STEPS: WizardStep[] = [
     options: [
       { id: 'latency', label: 'Ultra Low Latency', description: 'Real-time performance is critical', icon: '⏱️' },
       { id: 'flexibility', label: 'Deployment Ease', description: 'Quick to set up and maintain', icon: '🛠️' },
-      { id: 'size', label: 'Model Size', description: 'Small binary/model footprint', icon: '📦' }
+      { id: 'scalability', label: 'Elastic Scaling', description: 'Automatic resource management', icon: '📈' }
     ]
   }
 ];
@@ -120,11 +115,11 @@ export const FRAMEWORKS: FrameworkData[] = [
     color: 'from-orange-500 to-red-600',
     description: 'The preferred framework for research and dynamic graph development, with robust C++ support via LibTorch.',
     pythonInstall: 'pip install torch torchvision torchaudio',
-    cppInstall: '1. Download LibTorch (Pre-built) from pytorch.org\n2. Unzip to path/to/libtorch\n3. Use find_package(Torch REQUIRED) in CMakeLists.txt\n4. Set -DCMAKE_PREFIX_PATH="path/to/libtorch" during build.',
+    cppInstall: '1. Download LibTorch (Pre-built) from pytorch.org\n2. Unzip to path/to/libtorch\n3. Use find_package(Torch REQUIRED) in CMakeLists.txt',
     optimizationTips: [
-      "Use Auto Mixed Precision (AMP) to speed up training and inference by 2-3x on modern GPUs.",
-      "Convert models to TorchScript (Tracing/Scripting) to bypass the Python Global Interpreter Lock (GIL).",
-      "Utilize 'Channels Last' memory format for up to 20% performance boost on vision models."
+      "Use Auto Mixed Precision (AMP) to speed up training and inference.",
+      "Convert models to TorchScript (Tracing/Scripting).",
+      "Utilize 'Channels Last' memory format."
     ],
     trainingGuide: {
       description: "Standard training workflow using DistributedDataParallel (DDP).",
@@ -237,8 +232,8 @@ export const FRAMEWORKS: FrameworkData[] = [
     cppInstall: 'CGO linking to onnxruntime.so',
     optimizationTips: [
       "Use shared thread-safe sessions across goroutines",
-      "Minimize CGO boundaries to reduce context-switching overhead",
-      "Leverage Go channels for non-blocking pre/post processing pipelines"
+      "Minimize CGO boundaries",
+      "Leverage Go channels for non-blocking pipelines"
     ],
     trainingGuide: {
       description: "Fine-tuning via Gotorch (LibTorch wrappers).",
@@ -247,25 +242,59 @@ export const FRAMEWORKS: FrameworkData[] = [
     examples: [
       {
         title: 'Native ONNX Inference in Go',
-        description: 'Initializing the environment and running basic inference in Go using the yalue/onnxruntime_go wrapper.',
+        description: 'Initializing the environment and running basic inference in Go.',
         versions: [
           {
             label: 'v1.18+',
             python: `import onnxruntime as ort\nsession = ort.InferenceSession("model.onnx")\nres = session.run(None, {"input": data})`,
             cpp: `Ort::Env env;\nOrt::Session session(env, L"model.onnx", ...);`,
-            go: `package main\n\nimport (\n\t"fmt"\n\tort "github.com/yalue/onnxruntime_go"\n)\n\nfunc main() {\n\t// 1. Point to your shared library path\n\tort.SetSharedLibraryPath("libonnxruntime.so")\n\tort.Initialize()\n\tdefer ort.Destroy()\n\n\t// 2. Prepare tensors\n\tinputShape := ort.NewShape(1, 3, 224, 224)\n\tinputData := make([]float32, 1*3*224*224)\n\tinputTensor, _ := ort.NewTensor(inputShape, inputData)\n\tdefer inputTensor.Destroy()\n\n\t// 3. Load and execute\n\tsession, _ := ort.NewAdvancedSession("model.onnx",\n\t\t[]string{"input"}, []string{"output"},\n\t\t[]ort.ArbitraryTensor{inputTensor}, nil, nil)\n\tdefer session.Destroy()\n\n\tif err := session.Run(); err != nil {\n\t\tfmt.Printf("Error: %v\\n", err)\n\t}\n}`
+            go: `package main\n\nimport (\n\t"fmt"\n\tort "github.com/yalue/onnxruntime_go"\n)\n\nfunc main() {\n\tort.SetSharedLibraryPath("libonnxruntime.so")\n\tort.Initialize()\n\tdefer ort.Destroy()\n\n\tinputShape := ort.NewShape(1, 3, 224, 224)\n\tinputData := make([]float32, 1*3*224*224)\n\tinputTensor, _ := ort.NewTensor(inputShape, inputData)\n\tdefer inputTensor.Destroy()\n\n\tsession, _ := ort.NewAdvancedSession("model.onnx",\n\t\t[]string{"input"}, []string{"output"},\n\t\t[]ort.ArbitraryTensor{inputTensor}, nil, nil)\n\tdefer session.Destroy()\n\n\tif err := session.Run(); err != nil {\n\t\tfmt.Printf("Error: %v\\n", err)\n\t}\n}`
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'kubernetes',
+    name: 'Kubernetes for AI',
+    icon: '☸️',
+    color: 'from-blue-600 to-blue-800',
+    description: 'Production orchestration for distributed training and scalable GPU inference clusters.',
+    pythonInstall: 'pip install kubernetes',
+    cppInstall: 'Use Kubernetes Client C++ (via vcpkg)',
+    yamlInstall: 'curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"',
+    optimizationTips: [
+      "Enable NVIDIA Device Plugin for GPU discovery.",
+      "Use 'Shared Memory' volumes (/dev/shm) for high-performance multiprocessing.",
+      "Implement KEDA (Kubernetes Event-Driven Autoscaling) for GPU metrics.",
+      "Utilize Pod Affinity to colocate related AI services."
+    ],
+    trainingGuide: {
+      description: "Distributed training orchestration via Kubeflow Training Operator.",
+      code: "apiVersion: \"kubeflow.org/v1\"\nkind: \"PyTorchJob\"\nmetadata:\n  name: \"dist-training\"\nspec:\n  pytorchReplicaSpecs:\n    Master:\n      replicas: 1\n    Worker:\n      replicas: 4"
+    },
+    examples: [
+      {
+        title: 'GPU Inference Deployment',
+        description: 'Deploying a production inference container with dedicated NVIDIA GPU resources.',
+        versions: [
+          {
+            label: 'Production YAML',
+            python: `# Python SDK usage\nfrom kubernetes import client, config\nconfig.load_kube_config()\nv1 = client.CoreV1Api()`,
+            cpp: `// C++ SDK usage\n#include <kubernetes/api/CoreV1Api.h>`,
+            yaml: `apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: ai-inference-server\nspec:\n  replicas: 3\n  template:\n    spec:\n      containers:\n      - name: onnx-server\n        image: onnxruntime/server:latest\n        resources:\n          limits:\n            nvidia.com/gpu: 1 # Request 1 GPU\n        volumeMounts:\n        - name: dshm\n          mountPath: /dev/shm\n      volumes:\n      - name: dshm\n        emptyDir:\n          medium: Memory`
           }
         ]
       },
       {
-        title: 'Concurrent Inference Server',
-        description: 'Building a scalable HTTP server that shares a single model across multiple goroutines using Go native networking.',
+        title: 'HPA with GPU Metrics',
+        description: 'Scaling inference pods based on GPU memory utilization or duty cycle.',
         versions: [
           {
-            label: 'Production-Ready',
-            python: `# Multi-processing required for Python throughput`,
-            cpp: `#include <thread>\n// Manual thread pooling required`,
-            go: `package main\n\nimport (\n\t"net/http"\n\t"sync"\n\tort "github.com/yalue/onnxruntime_go"\n)\n\ntype Predictor struct {\n\tsession *ort.AdvancedSession\n}\n\nfunc (p *Predictor) ServeHTTP(w http.ResponseWriter, r *http.Request) {\n\t// ONNX Runtime sessions are thread-safe for the Run() method.\n\t// net/http automatically handles requests in parallel goroutines.\n\terr := p.session.Run()\n\tif err != nil {\n\t\thttp.Error(w, "Inference failed", 500)\n\t\treturn\n\t}\n\tw.Write([]byte("Inference Success"))\n}\n\nfunc main() {\n\tort.Initialize()\n\tdefer ort.Destroy()\n\n\t// Initialize global session once\n\tsharedSession, _ := initSession("resnet50.onnx")\n\n\tp := &Predictor{session: sharedSession}\n\thttp.ListenAndServe(":8080", p)\n}`
+            label: 'Scaling Config',
+            python: `# Watch metrics via Python API`,
+            cpp: `#include <kubernetes/api/AutoscalingV2Api.h>`,
+            yaml: `apiVersion: autoscaling/v2\nkind: HorizontalPodAutoscaler\nmetadata:\n  name: gpu-autoscale\nspec:\n  scaleTargetRef:\n    apiVersion: apps/v1\n    kind: Deployment\n    name: ai-inference-server\n  minReplicas: 1\n  maxReplicas: 10\n  metrics:\n  - type: Object\n    object:\n      metric:\n        name: gpu_duty_cycle\n      target:\n        type: Value\n        value: 80`
           }
         ]
       }

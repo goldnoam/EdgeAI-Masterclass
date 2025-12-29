@@ -1,11 +1,12 @@
 
-export type Framework = 'pytorch' | 'onnx' | 'tensorflow' | 'tensorrt' | 'roboflow' | 'ultralytics' | 'sam3' | 'golang';
+export type Framework = 'pytorch' | 'onnx' | 'tensorflow' | 'tensorrt' | 'roboflow' | 'ultralytics' | 'sam3' | 'golang' | 'kubernetes';
 
 export interface VersionedSnippet {
   label: string;
   python: string;
   cpp: string;
   go?: string;
+  yaml?: string;
 }
 
 export interface CodeExample {
@@ -24,6 +25,7 @@ export interface FrameworkData {
   pythonInstall: string;
   cppInstall: string;
   goInstall?: string;
+  yamlInstall?: string;
   optimizationTips: string[];
   trainingGuide: {
     description: string;
@@ -41,6 +43,7 @@ export interface ComparisonFeature {
   roboflow: string | number;
   sam3: string | number;
   golang: string | number;
+  kubernetes: string | number;
 }
 
 export interface BenchmarkData {
@@ -54,6 +57,7 @@ export interface BenchmarkData {
   roboflow: number;
   sam3: number;
   golang: number;
+  kubernetes: number;
 }
 
 export interface WizardStep {
@@ -67,7 +71,6 @@ export interface WizardStep {
   }[];
 }
 
-// Added missing ChatMessage interface to resolve compilation error in GeminiExpert.tsx
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;

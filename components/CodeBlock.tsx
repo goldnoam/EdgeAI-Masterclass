@@ -21,12 +21,12 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language }) => {
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
 
-    // Keywords (Added Go tokens: package, func, chan, go, defer, interface, struct, etc.)
-    const keywords = /\b(import|from|class|def|return|if|else|elif|for|while|try|except|with|as|nullptr|int|float|void|auto|std|vector|const|char|return|using|namespace|include|public|private|package|func|struct|chan|go|select|defer|type|range|map|interface|string|bool)\b/g;
+    // Keywords (Added Go tokens and YAML tokens)
+    const keywords = /\b(import|from|class|def|return|if|else|elif|for|while|try|except|with|as|nullptr|int|float|void|auto|std|vector|const|char|return|using|namespace|include|public|private|package|func|struct|chan|go|select|defer|type|range|map|interface|string|bool|apiVersion|kind|metadata|spec|selector|template|containers|image|resources|limits|nvidia.com\/gpu|replicas|status)\b/g;
     html = html.replace(keywords, '<span class="token keyword">$1</span>');
 
-    // Functions
-    const functions = /\b([a-zA-Z_][a-zA-Z0-9_]*)(?=\s*\()/g;
+    // Functions / YAML Keys
+    const functions = /\b([a-zA-Z_][a-zA-Z0-9_]*)(?=\s*:|\s*\()/g;
     html = html.replace(functions, '<span class="token function">$1</span>');
 
     // Strings

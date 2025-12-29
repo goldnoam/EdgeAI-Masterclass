@@ -8,15 +8,17 @@ interface FrameworkExplorerProps {
 }
 
 const FrameworkExplorer: React.FC<FrameworkExplorerProps> = ({ framework }) => {
-  const [activeTab, setActiveTab] = useState<'python' | 'cpp' | 'go'>(
-    framework.id === 'golang' ? 'go' : 'python'
+  const [activeTab, setActiveTab] = useState<'python' | 'cpp' | 'go' | 'yaml'>(
+    framework.id === 'golang' ? 'go' : framework.id === 'kubernetes' ? 'yaml' : 'python'
   );
 
   // Reset tab if framework changes and current tab is not supported
   useEffect(() => {
     if (framework.id === 'golang') {
       setActiveTab('go');
-    } else if (activeTab === 'go' && !framework.goInstall) {
+    } else if (framework.id === 'kubernetes') {
+      setActiveTab('yaml');
+    } else if ((activeTab === 'go' && !framework.goInstall) || (activeTab === 'yaml' && !framework.yamlInstall)) {
       setActiveTab('python');
     }
   }, [framework.id]);
@@ -30,6 +32,7 @@ const FrameworkExplorer: React.FC<FrameworkExplorerProps> = ({ framework }) => {
     const v = example.versions[versionIdx];
     let combined = `### PYTHON SNIPPET ###\n\n${v.python}\n\n### C++ IMPLEMENTATION ###\n\n${v.cpp}`;
     if (v.go) combined += `\n\n### GOLANG IMPLEMENTATION ###\n\n${v.go}`;
+    if (v.yaml) combined += `\n\n### YAML MANIFEST ###\n\n${v.yaml}`;
     navigator.clipboard.writeText(combined);
     alert('Code bundle copied to clipboard!');
   };
@@ -63,9 +66,12 @@ const FrameworkExplorer: React.FC<FrameworkExplorerProps> = ({ framework }) => {
           <div className="bg-slate-900/40 border border-slate-800/60 rounded-[1.5rem] p-6 lg:p-8 hover:border-indigo-500/30 transition-all shadow-lg">
             <h3 className="text-sm font-black text-indigo-400 mb-5 flex items-center gap-2 uppercase tracking-widest">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-              {framework.id === 'golang' ? 'Go Env' : 'Python Env'}
+              {framework.id === 'golang' ? 'Go Env' : framework.id === 'kubernetes' ? 'Kubectl' : 'Python Env'}
             </h3>
-            <CodeBlock code={framework.id === 'golang' ? framework.goInstall || '' : framework.pythonInstall} language="bash" />
+            <CodeBlock 
+              code={framework.id === 'golang' ? framework.goInstall || '' : framework.id === 'kubernetes' ? framework.yamlInstall || '' : framework.pythonInstall} 
+              language="bash" 
+            />
           </div>
           <div className="bg-slate-900/40 border border-slate-800/60 rounded-[1.5rem] p-6 lg:p-8 hover:border-emerald-500/30 transition-all shadow-lg">
             <h3 className="text-sm font-black text-emerald-400 mb-5 flex items-center gap-2 uppercase tracking-widest">
@@ -137,6 +143,16 @@ const FrameworkExplorer: React.FC<FrameworkExplorerProps> = ({ framework }) => {
 
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                   <div className="flex gap-2 p-1 bg-slate-950/80 border border-slate-800/50 rounded-xl w-full sm:w-fit overflow-x-auto scrollbar-hide">
+                    {activeVersion.yaml && (
+                       <button
+                       onClick={() => setActiveTab('yaml')}
+                       className={`flex-1 lg:flex-none px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-tight transition-all ${
+                         activeTab === 'yaml' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-200'
+                       }`}
+                     >
+                       Manifest
+                     </button>
+                    )}
                     <button
                       onClick={() => setActiveTab('python')}
                       className={`flex-1 lg:flex-none px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-tight transition-all ${
@@ -186,7 +202,7 @@ const FrameworkExplorer: React.FC<FrameworkExplorerProps> = ({ framework }) => {
 
                 <div className="relative group/code">
                   <CodeBlock 
-                    code={activeTab === 'python' ? activeVersion.python : activeTab === 'cpp' ? activeVersion.cpp : activeVersion.go || ''} 
+                    code={activeTab === 'python' ? activeVersion.python : activeTab === 'cpp' ? activeVersion.cpp : activeTab === 'go' ? activeVersion.go || '' : activeVersion.yaml || ''} 
                     language={activeTab} 
                   />
                 </div>
