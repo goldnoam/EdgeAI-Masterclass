@@ -1,0 +1,5 @@
+{
+  "name": "EdgeAI Masterclass",
+  "description": "A comprehensive developer portal for Deep Learning deployment: PyTorch, ONNX, TensorFlow, TensorRT, Roboflow, and Ultralytics with C++ and Python examples.",
+  "requestFramePermissions": []
+}
