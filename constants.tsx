@@ -236,9 +236,9 @@ export const FRAMEWORKS: FrameworkData[] = [
     pythonInstall: 'pip install onnx',
     cppInstall: 'CGO linking to onnxruntime.so',
     optimizationTips: [
-      "Use shared thread-safe sessions",
-      "Minimize CGO boundaries",
-      "Leverage Go channels for pipeline parallelism"
+      "Use shared thread-safe sessions across goroutines",
+      "Minimize CGO boundaries to reduce context-switching overhead",
+      "Leverage Go channels for non-blocking pre/post processing pipelines"
     ],
     trainingGuide: {
       description: "Fine-tuning via Gotorch (LibTorch wrappers).",
@@ -246,26 +246,26 @@ export const FRAMEWORKS: FrameworkData[] = [
     },
     examples: [
       {
-        title: 'Native ONNX Inference',
-        description: 'Initializing the environment and running basic inference in Go.',
+        title: 'Native ONNX Inference in Go',
+        description: 'Initializing the environment and running basic inference in Go using the yalue/onnxruntime_go wrapper.',
         versions: [
           {
             label: 'v1.18+',
             python: `import onnxruntime as ort\nsession = ort.InferenceSession("model.onnx")\nres = session.run(None, {"input": data})`,
-            cpp: `// Standard C++ ORT loading code...`,
-            go: `package main\n\nimport (\n\t"fmt"\n\tort "github.com/yalue/onnxruntime_go"\n)\n\nfunc main() {\n\tort.SetSharedLibraryPath("libonnxruntime.so")\n\tort.Initialize()\n\tdefer ort.Destroy()\n\n\tinputShape := ort.NewShape(1, 3, 224, 224)\n\tinputData := make([]float32, 1*3*224*224)\n\tinputTensor, _ := ort.NewTensor(inputShape, inputData)\n\tdefer inputTensor.Destroy()\n\n\tsession, _ := ort.NewAdvancedSession("model.onnx",\n\t\t[]string{"input"}, []string{"output"},\n\t\t[]ort.ArbitraryTensor{inputTensor}, nil, nil)\n\tdefer session.Destroy()\n\n\tif err := session.Run(); err != nil {\n\t\tfmt.Printf("Error: %v\\n", err)\n\t}\n}`
+            cpp: `Ort::Env env;\nOrt::Session session(env, L"model.onnx", ...);`,
+            go: `package main\n\nimport (\n\t"fmt"\n\tort "github.com/yalue/onnxruntime_go"\n)\n\nfunc main() {\n\t// 1. Point to your shared library path\n\tort.SetSharedLibraryPath("libonnxruntime.so")\n\tort.Initialize()\n\tdefer ort.Destroy()\n\n\t// 2. Prepare tensors\n\tinputShape := ort.NewShape(1, 3, 224, 224)\n\tinputData := make([]float32, 1*3*224*224)\n\tinputTensor, _ := ort.NewTensor(inputShape, inputData)\n\tdefer inputTensor.Destroy()\n\n\t// 3. Load and execute\n\tsession, _ := ort.NewAdvancedSession("model.onnx",\n\t\t[]string{"input"}, []string{"output"},\n\t\t[]ort.ArbitraryTensor{inputTensor}, nil, nil)\n\tdefer session.Destroy()\n\n\tif err := session.Run(); err != nil {\n\t\tfmt.Printf("Error: %v\\n", err)\n\t}\n}`
           }
         ]
       },
       {
         title: 'Concurrent Inference Server',
-        description: 'Building a scalable HTTP server that shares a single model across multiple goroutines.',
+        description: 'Building a scalable HTTP server that shares a single model across multiple goroutines using Go native networking.',
         versions: [
           {
-            label: 'High-Throughput',
-            python: `# Multi-processing usually required due to GIL`,
-            cpp: `#include <thread>\n// Needs custom thread pool`,
-            go: `package main\n\nimport (\n\t"net/http"\n\t"sync"\n\tort "github.com/yalue/onnxruntime_go"\n)\n\ntype Predictor struct {\n\tsession *ort.AdvancedSession\n\tmu      sync.Mutex\n}\n\nfunc (p *Predictor) ServeHTTP(w http.ResponseWriter, r *http.Request) {\n\t// Sessions are thread-safe for Run() if inputs are independent.\n\t// Go's net/http spawns a goroutine per request.\n\terr := p.session.Run()\n\tif err != nil {\n\t\thttp.Error(w, "Inference failed", 500)\n\t\treturn\n\t}\n\tw.Write([]byte("Prediction Success"))\n}\n\nfunc main() {\n\tort.Initialize()\n\t// Load global thread-safe session...\n\tp := &Predictor{session: sharedSession}\n\thttp.ListenAndServe(":8080", p)\n}`
+            label: 'Production-Ready',
+            python: `# Multi-processing required for Python throughput`,
+            cpp: `#include <thread>\n// Manual thread pooling required`,
+            go: `package main\n\nimport (\n\t"net/http"\n\t"sync"\n\tort "github.com/yalue/onnxruntime_go"\n)\n\ntype Predictor struct {\n\tsession *ort.AdvancedSession\n}\n\nfunc (p *Predictor) ServeHTTP(w http.ResponseWriter, r *http.Request) {\n\t// ONNX Runtime sessions are thread-safe for the Run() method.\n\t// net/http automatically handles requests in parallel goroutines.\n\terr := p.session.Run()\n\tif err != nil {\n\t\thttp.Error(w, "Inference failed", 500)\n\t\treturn\n\t}\n\tw.Write([]byte("Inference Success"))\n}\n\nfunc main() {\n\tort.Initialize()\n\tdefer ort.Destroy()\n\n\t// Initialize global session once\n\tsharedSession, _ := initSession("resnet50.onnx")\n\n\tp := &Predictor{session: sharedSession}\n\thttp.ListenAndServe(":8080", p)\n}`
           }
         ]
       }
