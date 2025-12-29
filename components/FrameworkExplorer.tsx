@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FrameworkData, CodeExample, VersionedSnippet } from '../types';
 import CodeBlock from './CodeBlock';
 
@@ -11,6 +11,15 @@ const FrameworkExplorer: React.FC<FrameworkExplorerProps> = ({ framework }) => {
   const [activeTab, setActiveTab] = useState<'python' | 'cpp' | 'go'>(
     framework.id === 'golang' ? 'go' : 'python'
   );
+
+  // Reset tab if framework changes and current tab is not supported
+  useEffect(() => {
+    if (framework.id === 'golang') {
+      setActiveTab('go');
+    } else if (activeTab === 'go' && !framework.goInstall) {
+      setActiveTab('python');
+    }
+  }, [framework.id]);
 
   // Track selected version index for each example
   const [selectedVersions, setSelectedVersions] = useState<Record<number, number>>(

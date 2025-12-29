@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 
 interface CodeBlockProps {
@@ -22,8 +21,8 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language }) => {
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
 
-    // Keywords
-    const keywords = /\b(import|from|class|def|return|if|else|elif|for|while|try|except|with|as|nullptr|int|float|void|auto|std|vector|const|char|return|using|namespace|include|public|private)\b/g;
+    // Keywords (Added Go tokens: package, func, chan, go, defer, interface, struct, etc.)
+    const keywords = /\b(import|from|class|def|return|if|else|elif|for|while|try|except|with|as|nullptr|int|float|void|auto|std|vector|const|char|return|using|namespace|include|public|private|package|func|struct|chan|go|select|defer|type|range|map|interface|string|bool)\b/g;
     html = html.replace(keywords, '<span class="token keyword">$1</span>');
 
     // Functions
@@ -31,7 +30,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language }) => {
     html = html.replace(functions, '<span class="token function">$1</span>');
 
     // Strings
-    const strings = /("[^"]*")|('[^']*')/g;
+    const strings = /("[^"]*")|('[^']*')|(`[^`]*`)/g;
     html = html.replace(strings, '<span class="token string">$1</span>');
 
     // Numbers
@@ -39,7 +38,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language }) => {
     html = html.replace(numbers, '<span class="token number">$1</span>');
 
     // Comments
-    const comments = /(#.*)|(\/\/.*)/g;
+    const comments = /(#.*)|(\/\/.*)|(\/\*[\s\S]*?\*\/)/g;
     html = html.replace(comments, '<span class="token comment">$1</span>');
 
     return html;
